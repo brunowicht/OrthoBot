@@ -28,6 +28,7 @@ letters = ['a', 'c', 'p', 'e', 'l', 'o', 'n', 't', 'r', 'i', 'f', 'g',
            'y', 'x', 'h', 'k', 'î', 'ê', 'û', 'ç', 'ë', 'ï', 'ô', 'ö', 'à', 'w',
            'ü', 'ñ', 'ù', 'ã', '.']
 
+baseurl='http://wikipast.epfl.ch/wikipast/'
 
 
 def word_correct(w):
@@ -49,6 +50,20 @@ def remove_bracketed(text, keep_hypermot = False):
         elif bracket == 2 and keep_hypermot:
             t += c
     return t
+
+def remove_balised(text):
+    """remove all the balises"""
+    t = ''
+    b = 0
+    for c in text:
+        if c == '<':
+            b += 1
+        if c == '>' and b > 0:
+            b -= 1
+        elif b == 0:
+            t += c
+    return t
+            
 
 def keep_only_letters(text):
     """return the same text removing all character which is not a letter or a space."""
@@ -118,7 +133,7 @@ def eliminate_tirait_apostrophe(word_list):
                 
 
 def text_wrong_words(text, hypermots=False):
-    text_words = eliminate_tirait_apostrophe(text_to_words(keep_only_letters(remove_bracketed(text, hypermots))))
+    text_words = eliminate_tirait_apostrophe(text_to_words(keep_only_letters(remove_bracketed(remove_balised(text), hypermots))))
     false_words = list()
     for w in text_words:
         if not word_correct(w):
@@ -199,7 +214,7 @@ def print_correct_proposition_text(text):
 
 
 def get_text(page_name):
-    baseurl='http://wikipast.epfl.ch/wikipast/'
+    
     
     result=requests.post(baseurl+'api.php?action=query&titles='+page_name+'&export&exportnowrap')
     soup=BeautifulSoup(result.text, "lxml")
@@ -216,22 +231,28 @@ def correct_in_text(text):
         l = len(w)
         while i in range(0, len(text)):
             if i > 0 and not text[i-1].isalpha() and not text[i+l].isalpha():
-                text = text[:i + l] +' {corrections: ' +str(corrections[w])+'}' + text[i + l:]
-            i = text.find(w, i+1)
-            print(i)
+                text = text[:i]+ '<span style="color:red">' +text[i:i + l] + '</span> {corrections: <span style="color:green">' +str(corrections[w])+'</span>}'+ text[i + l:]
+            i = text.find(w, i+25)
             
     return text
                 
-            
+def getPageList():
+    protected_logins=["Frederickaplan","Maud","Vbuntinx","Testbot","IB","SourceBot","PageUpdaterBot","Orthobot","BioPathBot","ChronoBOT","Amonbaro","AntoineL","AntoniasBanderos","Arnau","Arnaudpannatier","Aureliver","Brunowicht","Burgerpop","Cedricviaccoz","Christophe","Claudioloureiro","Ghislain","Gregoire3245","Hirtg","Houssm","Icebaker","JenniCin","JiggyQ","JulienB","Kl","Kperrard","Leandro Kieliger","Marcus","Martin","MatteoGiorla","Mireille","Mj2905","Musluoglucem","Nacho","Nameless","Nawel","O'showa","PA","Qantik","QuentinB","Raphael.barman","Roblan11","Romain Fournier","Sbaaa","Snus","Sonia","Tboyer","Thierry","Titi","Vlaedr","Wanda"]
+    pages=[]
+    for user in protected_logins:
+        result=requests.post(baseurl+'api.php?action=query&list=usercontribs&ucuser='+user+'&format=xml&ucend=2017-02-02T16:00:00Z')
+        soup=BeautifulSoup(result.content,'lxml')
+        for primitive in soup.usercontribs.findAll('item'):
+            pages.append(primitive['title'])
+    return list(set(pages))
+           
         
 
-
-t = time.time()
-text = "Bonjour, comment allez vou? Voulez vou me rencontrer?" 
-print(correct_in_text(text))
-#corrected = correct_in_text(get_text('Steffi_Graf'))
-#print(corrected)
-print(time.time()-t)
+def main():
+    t = time.time()
+    corrected = correct_in_text(get_text('TestOrthobot'))
+    print(corrected)
+    print(time.time()-t)
 
 #Questions à poser:
     #Que faire des hypermots?
