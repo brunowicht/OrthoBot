@@ -16164,6 +16164,7 @@ bostoniens
 bostoniens
 bostonner
 bot
+bots
 botanique
 botanique
 botaniquement
@@ -67271,6 +67272,8 @@ hyperlipémie
 hypermarché
 hypermarchés
 hypermnésie
+hypermot
+hypermots
 hypernerveuse
 hypernerveux
 hyperplan

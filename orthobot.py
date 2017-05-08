@@ -9,6 +9,33 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
+letters = ['a', 'c', 'p', 'e', 'l', 'o', 'n', 't', 'r', 'i', 'f', 'g',
+           'j', 'u', "'", 's', 'b', 'd', 'v', '-', 'm', 'z', 'è', 'é', 'q', 'â',
+           'y', 'x', 'h', 'k', 'î', 'ê', 'û', 'ç', 'ë', 'ï', 'ô', 'ö', 'à', 'w',
+           'ü', 'ñ', 'ù', 'ã', '.']
+
+baseurl='http://wikipast.epfl.ch/wikipast/'
+user = 'Orthobot'
+passw = 'orthobot2017'
+summary='Wikipastbot update'
+
+# Login request
+payload={'action':'query','format':'json','utf8':'','meta':'tokens','type':'login'}
+r1=requests.post(baseurl + 'api.php', data=payload)
+
+#login confirm
+login_token=r1.json()['query']['tokens']['logintoken']
+payload={'action':'login','format':'json','utf8':'','lgname':user,'lgpassword':passw,'lgtoken':login_token}
+r2=requests.post(baseurl + 'api.php', data=payload, cookies=r1.cookies)
+
+#get edit token2
+params3='?format=json&action=query&meta=tokens&continue='
+r3=requests.get(baseurl + 'api.php' + params3, cookies=r2.cookies)
+edit_token=r3.json()['query']['tokens']['csrftoken']
+
+edit_cookie=r2.cookies.copy()
+edit_cookie.update(r3.cookies)
+
 def read_french_words():
     """read the dictionary txt file and store all the french words in a list"""
     file = open('french_words.txt','r', encoding='utf8')
@@ -23,12 +50,7 @@ def read_french_words():
     return words
 
 words = read_french_words()
-letters = ['a', 'c', 'p', 'e', 'l', 'o', 'n', 't', 'r', 'i', 'f', 'g',
-           'j', 'u', "'", 's', 'b', 'd', 'v', '-', 'm', 'z', 'è', 'é', 'q', 'â',
-           'y', 'x', 'h', 'k', 'î', 'ê', 'û', 'ç', 'ë', 'ï', 'ô', 'ö', 'à', 'w',
-           'ü', 'ñ', 'ù', 'ã', '.']
 
-baseurl='http://wikipast.epfl.ch/wikipast/'
 
 
 def word_correct(w):
@@ -63,6 +85,13 @@ def remove_balised(text):
         elif b == 0:
             t += c
     return t
+
+
+def remove_colored(text):
+    text = text.replace('<span style="color:red">', '<')
+    text = text.replace('<span style="color:green">', '<')
+    text = text.replace('</span>', '>')
+    return text
             
 
 def keep_only_letters(text):
@@ -133,7 +162,7 @@ def eliminate_tirait_apostrophe(word_list):
                 
 
 def text_wrong_words(text, hypermots=False):
-    text_words = eliminate_tirait_apostrophe(text_to_words(keep_only_letters(remove_bracketed(remove_balised(text), hypermots))))
+    text_words = eliminate_tirait_apostrophe(text_to_words(keep_only_letters(remove_bracketed(remove_balised(remove_colored(text)), hypermots))))
     false_words = list()
     for w in text_words:
         if not word_correct(w):
@@ -159,12 +188,12 @@ def correction_proposition(word):
     
     
     ## 1 letter missing            
-    for i in range(len(word)):
+    for i in range(len(word)+1):
         for l in letters:
             cword = ''
             cword += word[:i]
             cword += l
-            if i < len(word)-1:
+            if i < len(word):
                 cword += word[i:]
             if word_correct(cword):
                 corrections.append(cword)
@@ -222,7 +251,8 @@ def get_text(page_name):
     for primitive in soup.findAll("text"):
         text+=primitive.string
     return text
-    
+ 
+
 def correct_in_text(text):
     wrong = list(set(text_wrong_words(text, False)))
     corrections = corrections_for_words(wrong)
@@ -231,7 +261,7 @@ def correct_in_text(text):
         l = len(w)
         while i in range(0, len(text)):
             if i > 0 and not text[i-1].isalpha() and not text[i+l].isalpha():
-                text = text[:i]+ '<span style="color:red">' +text[i:i + l] + '</span> {corrections: <span style="color:green">' +str(corrections[w])+'</span>}'+ text[i + l:]
+                text = text[:i]+ '<span style="color:red">' +text[i:i + l] + '</span> (correction(s): <span style="color:green">' +', '.join(corrections[w])+'</span>)'+ text[i + l:]
             i = text.find(w, i+25)
             
     return text
@@ -246,14 +276,21 @@ def getPageList():
             pages.append(primitive['title'])
     return list(set(pages))
            
-        
+def edit_page(page, text):
+    payload = {'action':'edit','assert':'user','format':'json','utf8':'','text': text,'summary':summary,'title':page,'token':edit_token}     
+    requests.post(baseurl+'api.php',data=payload,cookies=edit_cookie)
+    
+
 
 def main():
-    t = time.time()
-    corrected = correct_in_text(get_text('TestOrthobot'))
-    print(corrected)
-    print(time.time()-t)
+    pages = ['testOrthobot', 'OrthoBot']
+    for p in pages:
+        print(p)
+        corrected = correct_in_text(get_text(p))
+        edit_page(p, corrected)
 
+
+main()
 #Questions à poser:
     #Que faire des hypermots?
     #Comment proposer une correction à l'utilisateur? écrire le mot en rouge 
