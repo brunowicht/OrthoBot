@@ -36,6 +36,8 @@ edit_token=r3.json()['query']['tokens']['csrftoken']
 edit_cookie=r2.cookies.copy()
 edit_cookie.update(r3.cookies)
 
+corrections = {}
+
 def read_french_words():
     """read the dictionary txt file and store all the french words in a list"""
     file = open('french_words.txt','r', encoding='utf8')
@@ -102,7 +104,9 @@ def keep_only_letters(text):
             c = "'"
         if c.lower() in letters or c == ' ':
             t += c.lower()
-    return t
+        else:
+            t += ' '
+    return t+' '
 
 def text_to_words(text):
     """transforms a text into a list of words"""
@@ -173,7 +177,7 @@ def correction_proposition(word):
     """propose a correction for a erroneous word"""
     if word_correct(word):
         return [word]
-    corrections = list()
+    cor = list()
     
     ## 1 letter wrong
     for i in range(len(word)):
@@ -184,7 +188,7 @@ def correction_proposition(word):
             if i < len(word)-1:
                 cword += word[i+1:]
             if word_correct(cword):
-                corrections.append(cword)
+                cor.append(cword)
     
     
     ## 1 letter missing            
@@ -196,7 +200,7 @@ def correction_proposition(word):
             if i < len(word):
                 cword += word[i:]
             if word_correct(cword):
-                corrections.append(cword)
+                cor.append(cword)
                 
                 
     for i in range(len(word)):
@@ -205,7 +209,7 @@ def correction_proposition(word):
         if i < len(word)-1:
             cword += word[i+1:]
         if word_correct(cword):
-            corrections.append(cword)
+            cor.append(cword)
     
 
 
@@ -219,32 +223,31 @@ def correction_proposition(word):
             if i < len(word)-1:
                 cword += word[i+1:]
             if word_correct(cword):
-                corrections.append(cword)
+                cor.append(cword)
         
     
     
     
     ## to make each correction unique
-    return list(set(corrections))
+    return list(set(cor))
 
 def corrections_for_words(word):
-    cor = {}
     unique_w = list(set(word))
     for w in unique_w:
-        cor[w] = correction_proposition(w)
-    return cor
+        if not w in corrections:
+            corrections[w] = correction_proposition(w)
+        else:
+            print(w)
 
 def print_correct_proposition_text(text):
     wrong = text_wrong_words(text, False)
-    corrections = corrections_for_words(wrong)
+    corrections_for_words(wrong)
     for w in wrong:
         print(w + '\ncorrection: ' + str(corrections[w]))
         print('')
 
 
 def get_text(page_name):
-    
-    
     result=requests.post(baseurl+'api.php?action=query&titles='+page_name+'&export&exportnowrap')
     soup=BeautifulSoup(result.text, "lxml")
     text=''
@@ -254,8 +257,9 @@ def get_text(page_name):
  
 
 def correct_in_text(text):
+    text = text+' '
     wrong = list(set(text_wrong_words(text, False)))
-    corrections = corrections_for_words(wrong)
+    corrections_for_words(wrong)
     for w in wrong:
         i = text.find(w)
         l = len(w)
@@ -283,12 +287,13 @@ def edit_page(page, text):
 
 
 def main():
+    t = time.time()
     pages = ['testOrthobot', 'OrthoBot']
     for p in pages:
         print(p)
         corrected = correct_in_text(get_text(p))
         edit_page(p, corrected)
-
+    print(time.time() - t)
 
 main()
 #Questions à poser:
