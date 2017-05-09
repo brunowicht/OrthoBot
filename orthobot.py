@@ -319,6 +319,7 @@ def main():
     t = time.time()
     pages = getPageList()
     for p in pages:
+        if not (p.find('Fichier') == 0 or p in ['Monsieur Y', 'Madame X', 'Biographies']):
             print(p)
             corrected = correct_in_text(get_text(p))
             #edit_page(p, corrected)
