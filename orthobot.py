@@ -236,8 +236,7 @@ def corrections_for_words(word):
     for w in unique_w:
         if not w in corrections:
             corrections[w] = correction_proposition(w)
-        else:
-            print(w)
+
 
 def print_correct_proposition_text(text):
     wrong = text_wrong_words(text, False)
