@@ -36,7 +36,7 @@ edit_token=r3.json()['query']['tokens']['csrftoken']
 edit_cookie=r2.cookies.copy()
 edit_cookie.update(r3.cookies)
 
-corrections = {}
+
 
 def read_french_words():
     """read the dictionary txt file and store all the french words in a list"""
@@ -51,10 +51,27 @@ def read_french_words():
     file.close()   
     return words
 
+def read_corrections():
+    file = open('corrections.txt', 'r', encoding='utf8')
+    cor = {}
+    w = file.readline()
+    while w:
+        word = w.split(':')
+        cor[word[0]] = word[1].split(',')
+        w = file.readline()
+    file.close()
+    return cor
+
 words = read_french_words()
+corrections = read_corrections()
 
 
-
+def write_corrections(t):
+    file = open('corrections.txt', 'a', encoding='utf8')
+    file.write(t)
+    file.close()
+    
+    
 def word_correct(w):
     """Returns True if word w is correct i.e. if it is in the dictionary"""
     w = w.lower()
@@ -90,9 +107,16 @@ def remove_balised(text):
 
 
 def remove_colored(text):
+    #color removing
     text = text.replace('<span style="color:red">', '<')
     text = text.replace('<span style="color:green">', '<')
     text = text.replace('</span>', '>')
+    #no wiki removing (code)
+    text = text.replace('<nowiki>', '<')
+    text = text.replace('/nowiki>', '>')
+    #table removing (a lot of names in there)
+    text = text.replace('{|', '<')
+    text = text.replace('|}', '>')
     return text
             
 
@@ -236,6 +260,12 @@ def corrections_for_words(word):
     for w in unique_w:
         if not w in corrections:
             corrections[w] = correction_proposition(w)
+            c = w
+            c += ':'
+            c += ','.join(corrections[w])
+            c += '\n'
+            write_corrections(c)
+                
 
 
 def print_correct_proposition_text(text):
@@ -287,11 +317,11 @@ def edit_page(page, text):
 
 def main():
     t = time.time()
-    pages = ['testOrthobot', 'OrthoBot']
+    pages = getPageList()
     for p in pages:
-        print(p)
-        corrected = correct_in_text(get_text(p))
-        edit_page(p, corrected)
+            print(p)
+            corrected = correct_in_text(get_text(p))
+            #edit_page(p, corrected)
     print(time.time() - t)
 
 main()
