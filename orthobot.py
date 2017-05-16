@@ -281,7 +281,10 @@ def get_text(page_name):
     soup=BeautifulSoup(result.text, "lxml")
     text=''
     for primitive in soup.findAll("text"):
-        text+=primitive.string
+        try:
+            text+=primitive.string
+        except:
+            continue
     return text
  
 
@@ -317,7 +320,8 @@ def edit_page(page, text):
 
 def main():
     t = time.time()
-    pages = getPageList()
+    #pages = getPageList()
+    pages = ['Sepp Blatter', 'Distinction']
     for p in pages:
         if not (p.find('Fichier') == 0 or p in ['Monsieur Y', 'Madame X', 'Biographies']):
             print(p)
