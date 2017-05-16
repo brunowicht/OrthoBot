@@ -320,8 +320,7 @@ def edit_page(page, text):
 
 def main():
     t = time.time()
-    #pages = getPageList()
-    pages = ['Sepp Blatter', 'Distinction']
+    pages = getPageList()
     for p in pages:
         if not (p.find('Fichier') == 0 or p in ['Monsieur Y', 'Madame X', 'Biographies']):
             print(p)
